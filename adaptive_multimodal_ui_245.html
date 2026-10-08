@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaptive Multimodal UI</title>
+
+  <style>
+    :root {
+      --button-size: 10px 18px;
+      --font-size: 1rem;
+      --focus-ring: transparent;
+      --main-color: #0056b3;
+    }
+
+    /* Adaptive settings */
+    body.mode-touch {
+      --button-size: 17px 30px;
+      --font-size: 1.15rem;
+    }
+
+    body.mode-keyboard {
+      --focus-ring: 4px solid #ff9900;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 25px;
+      background: #f0f2f5;
+      color: #222;
+      font-size: var(--font-size);
+    }
+
+    h1, h2 {
+      text-align: center;
+    }
+
+    .top-panel {
+      max-width: 900px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 8px 14px;
+      background: #333;
+      color: white;
+      border-radius: 5px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .section {
+      max-width: 900px;
+      margin: 25px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    button {
+      padding: var(--button-size);
+      font-size: var(--font-size);
+      background: var(--main-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      outline: var(--focus-ring);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    /* Speech and gesture section */
+    #stage {
+      width: 100%;
+      max-width: 600px;
+      height: 300px;
+      background: #fafafa;
+      border: 2px dashed #bbb;
+      border-radius: 10px;
+      margin: 20px auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #box {
+      width: 80px;
+      height: 80px;
+      background: #0056b3;
+      color: white;
+      font-weight: bold;
+      line-height: 80px;
+      text-align: center;
+      border-radius: 8px;
+      position: absolute;
+      top: 110px;
+      left: 260px;
+      cursor: grab;
+      user-select: none;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .status {
+      text-align: center;
+      margin: 12px;
+    }
+
+    /* Eye tracking section */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: #2d2d2d;
+      color: white;
+      padding: 25px;
+      border-radius: 8px;
+      border: 2px solid #444;
+      text-align: center;
+      transition: 0.3s;
+    }
+
+    .card.fixated {
+      border-color: #ff4757;
+      box-shadow: 0 0 15px rgba(255, 71, 87, 0.5);
+    }
+
+    #gazePointer {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #ff4757;
+      background: rgba(255, 71, 87, 0.3);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+    }
+
+    #metrics {
+      margin-top: 15px;
+      padding: 12px;
+      background: #222;
+      color: white;
+      border-radius: 5px;
+      font-family: monospace;
+    }
+
+    .info {
+      text-align: center;
+      color: #555;
+    }
+
+    @media (max-width: 700px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      #box {
+        left: 40%;
+      }
+    }
+  </style>
+</head>
+
+<body class="mode-mouse">
+
+  <div class="top-panel">
+    <h1>Adaptive Multimodal UI</h1>
+    <p>This page combines speech, gesture, eye-gaze and input modality detection.</p>
+    <div class="badge" id="modalityBadge">
+      Active Modality: Mouse (Fine Pointer)
+    </div>
+  </div>
+
+  <!-- Speech and Gesture -->
+  <div class="section">
+    <h2>1. Speech & Gesture Controls</h2>
+
+    <div style="text-align:center;">
+      <button id="micBtn">🎙️ Start Voice Control</button>
+    </div>
+
+    <div class="status" id="status">
+      Voice control is offline. Click the button to activate.
+    </div>
+
+    <div id="stage">
+      <div id="box">Box</div>
+    </div>
+
+    <p class="info">
+      Drag the box using mouse/touch. Voice commands: red, blue, green,
+      bigger, smaller, reset.
+    </p>
+  </div>
+
+  <!-- Eye Gaze -->
+  <div class="section">
+    <h2>2. Eye-Gaze Fixation Simulation</h2>
+
+    <p class="info">
+      Move the mouse over a card and pause for more than 500ms to simulate
+      an eye fixation.
+    </p>
+
+    <div class="grid">
+      <div class="card" data-id="Card 1">
+        <h3>Hero Offer</h3>
+        <p>Focus Area A</p>
+      </div>
+
+      <div class="card" data-id="Card 2">
+        <h3>Product Video</h3>
+        <p>Focus Area B</p>
+      </div>
+
+      <div class="card" data-id="Card 3">
+        <h3>Call to Action</h3>
+        <p>Focus Area C</p>
+      </div>
+    </div>
+
+    <div id="gazePointer"></div>
+
+    <div id="metrics">
+      Gaze Position: (<span id="gx">0</span>, <span id="gy">0</span>)<br>
+      Current Fixation: <span id="fixTarget">None</span><br>
+      Dwell Time: <span id="dwell">0</span> ms
+    </div>
+  </div>
+
+  <!-- Adaptive UI -->
+  <div class="section">
+    <h2>3. Adaptive UI Modality</h2>
+
+    <p class="info">
+      The interface changes according to the user's input method.
+    </p>
+
+    <div style="text-align:center;">
+      <button class="adaptive-button">Interactive Action Button</button>
+    </div>
+
+    <p class="info">
+      Move mouse = compact controls | Touch = larger controls |
+      Press Tab = high-contrast focus
+    </p>
+  </div>
+
+  <script>
+    const badge = document.getElementById("modalityBadge");
+
+    // -----------------------------
+    // Adaptive Modality Detection
+    // -----------------------------
+    function setModality(name, className) {
+      document.body.className = className;
+      badge.textContent = "Active Modality: " + name;
+    }
+
+    window.addEventListener("touchstart", function() {
+      setModality(
+        "Touch (Coarse Pointer - Larger Controls)",
+        "mode-touch"
+      );
+    });
+
+    window.addEventListener("mousemove", function() {
+      if (!document.body.classList.contains("mode-touch")) {
+        setModality(
+          "Mouse (Fine Pointer - Compact Controls)",
+          "mode-mouse"
+        );
+      }
+    });
+
+    window.addEventListener("keydown", function(e) {
+      if (e.key === "Tab") {
+        setModality(
+          "Keyboard (High-Contrast Focus)",
+          "mode-keyboard"
+        );
+      }
+    });
+
+
+    // -----------------------------
+    // Speech Controls
+    // -----------------------------
+    const box = document.getElementById("box");
+    const status = document.getElementById("status");
+    const micBtn = document.getElementById("micBtn");
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+
+      recognition.continuous = true;
+      recognition.lang = "en-US";
+
+      micBtn.addEventListener("click", function() {
+        try {
+          recognition.start();
+          status.textContent =
+            "Listening... Say red, blue, green, bigger or reset.";
+          micBtn.textContent = "🔴 Voice Control Active";
+        } catch (error) {
+          status.textContent = "Voice control is already running.";
+        }
+      });
+
+      recognition.onresult = function(event) {
+        const command =
+          event.results[event.results.length - 1][0]
+            .transcript.trim()
+            .toLowerCase();
+
+        status.textContent = 'Voice Command: "' + command + '"';
+
+        if (command.includes("red")) {
+          box.style.backgroundColor = "#d9534f";
+        }
+
+        if (command.includes("blue")) {
+          box.style.backgroundColor = "#0056b3";
+        }
+
+        if (command.includes("green")) {
+          box.style.backgroundColor = "#28a745";
+        }
+
+        if (command.includes("bigger")) {
+          box.style.transform = "scale(1.4)";
+        }
+
+        if (command.includes("smaller")) {
+          box.style.transform = "scale(0.8)";
+        }
+
+        if (command.includes("reset")) {
+          resetBox();
+        }
+      };
+    } else {
+      status.textContent =
+        "Web Speech API is not supported in this browser.";
+    }
+
+
+    // -----------------------------
+    // Mouse / Touch Dragging
+    // -----------------------------
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialLeft = 0;
+    let initialTop = 0;
+
+    function startDrag(e) {
+      isDragging = true;
+
+      const clientX = e.touches
+        ? e.touches[0].clientX
+        : e.clientX;
+
+      const clientY = e.touches
+        ? e.touches[0].clientY
+        : e.clientY;
+
+      startX = clientX;
+      startY = clientY;
+
+      initialLeft = box.offsetLeft;
+      initialTop = box.offsetTop;
+
+      box.style.cursor = "grabbing";
+
+      setModality(
+        e.touches ? "Touch (Dragging)" : "Mouse (Dragging)",
+        e.touches ? "mode-touch" : "mode-mouse"
+      );
+    }
+
+    function moveDrag(e) {
+      if (!isDragging) return;
+
+      const clientX = e.touches
+        ? e.touches[0].clientX
+        : e.clientX;
+
+      const clientY = e.touches
+        ? e.touches[0].clientY
+        : e.clientY;
+
+      const dx = clientX - startX;
+      const dy = clientY - startY;
+
+      box.style.left = initialLeft + dx + "px";
+      box.style.top = initialTop + dy + "px";
+    }
+
+    function stopDrag() {
+      isDragging = false;
+      box.style.cursor = "grab";
+    }
+
+    function resetBox() {
+      box.style.backgroundColor = "#0056b3";
+      box.style.transform = "scale(1)";
+      box.style.left = "260px";
+      box.style.top = "110px";
+    }
+
+    box.addEventListener("mousedown", startDrag);
+    document.addEventListener("mousemove", moveDrag);
+    document.addEventListener("mouseup", stopDrag);
+
+    box.addEventListener("touchstart", startDrag);
+    document.addEventListener("touchmove", moveDrag);
+    document.addEventListener("touchend", stopDrag);
+
+
+    // -----------------------------
+    // Eye-Gaze Simulation
+    // -----------------------------
+    const gazePointer = document.getElementById("gazePointer");
+    const gx = document.getElementById("gx");
+    const gy = document.getElementById("gy");
+    const fixTarget = document.getElementById("fixTarget");
+    const dwell = document.getElementById("dwell");
+    const cards = document.querySelectorAll(".card");
+
+    let currentCard = null;
+    let fixationTimer = null;
+    let startTime = 0;
+
+    const FIXATION_THRESHOLD = 500;
+
+    document.addEventListener("mousemove", function(e) {
+
+      gazePointer.style.left = e.clientX + "px";
+      gazePointer.style.top = e.clientY + "px";
+
+      gx.textContent = e.pageX;
+      gy.textContent = e.pageY;
+
+      const element = document.elementFromPoint(
+        e.clientX,
+        e.clientY
+      );
+
+      const card = element
+        ? element.closest(".card")
+        : null;
+
+      if (card !== currentCard) {
+
+        if (currentCard) {
+          currentCard.classList.remove("fixated");
+        }
+
+        clearTimeout(fixationTimer);
+
+        currentCard = card;
+        dwell.textContent = "0";
+
+        fixTarget.textContent = card
+          ? card.dataset.id + " (Pending...)"
+          : "None";
+
+        gazePointer.style.width = "22px";
+        gazePointer.style.height = "22px";
+
+        if (card) {
+
+          startTime = Date.now();
+
+          fixationTimer = setTimeout(function() {
+
+            card.classList.add("fixated");
+
+            fixTarget.textContent =
+              card.dataset.id + " (FIXATED!)";
+
+            gazePointer.style.width = "34px";
+            gazePointer.style.height = "34px";
+
+          }, FIXATION_THRESHOLD);
+        }
+
+      } else if (currentCard && startTime > 0) {
+
+        dwell.textContent =
+          Date.now() - startTime;
+      }
+    });
+  </script>
+
+</body>
+</html>
